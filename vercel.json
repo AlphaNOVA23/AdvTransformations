@@ -1,0 +1,13 @@
+{
+  "build": {
+    "env": {
+      "VERCEL_OUTPUT_DIRECTORY": "dist"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
