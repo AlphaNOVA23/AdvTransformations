@@ -1,0 +1,9 @@
+{
+  "name": "advanced-threejs-app",
+  "version": "1.0.0",
+  "description": "An advanced Three.js app with transformations for Vercel.",
+  "main": "main.js",
+  "scripts": {
+    "build": "echo 'No build step required for static site'"
+  }
+}
