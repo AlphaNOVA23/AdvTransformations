@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Transformations with Three.js</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent scrollbars from appearing */
+        }
+        /* Custom styles for sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #6b7280; /* gray-500 */
+            outline: none;
+            opacity: 0.8;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+            border-radius: 5px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #60A5FA; /* blue-400 */
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #60A5FA; /* blue-400 */
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-700 text-white">
+
+    <div id="container" class="w-full h-screen fixed top-0 left-0"></div>
+
+    <div class="fixed top-0 left-0 p-6 w-full md:w-96 bg-gray-800 bg-opacity-80 backdrop-blur-sm rounded-br-lg shadow-lg max-h-screen overflow-y-auto">
+        <h1 class="text-2xl font-bold mb-4 text-blue-300">3D Transformation Explorer</h1>
+        
+        <!-- Object Shape -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-2 text-gray-200 border-b border-gray-600 pb-1">Object Shape</h2>
+            <div class="flex space-x-2">
+                <button id="shapeCube" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full text-sm">Cube</button>
+                <button id="shapeSphere" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded w-full text-sm">Sphere</button>
+            </div>
+        </div>
+
+        <!-- Transformations -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-2 text-gray-200 border-b border-gray-600 pb-1">Transformations</h2>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Translation X: <span id="translateXVal">0</span></label>
+                <input type="range" id="translateX" min="-5" max="5" value="0" step="0.1" class="w-full">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Translation Y: <span id="translateYVal">0</span></label>
+                <input type="range" id="translateY" min="-5" max="5" value="0" step="0.1" class="w-full">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Rotation Y: <span id="rotateYVal">0</span></label>
+                <input type="range" id="rotateY" min="-180" max="180" value="0" step="1" class="w-full">
+            </div>
+             <div class="mb-3">
+                <label class="block text-sm font-medium">Scale: <span id="scaleVal">1</span></label>
+                <input type="range" id="scale" min="0.1" max="3" value="1" step="0.1" class="w-full">
+            </div>
+        </div>
+
+        <!-- Skewing -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-2 text-gray-200 border-b border-gray-600 pb-1">Skew (Shear)</h2>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Skew XY: <span id="skewXYVal">0</span></label>
+                <input type="range" id="skewXY" min="-1" max="1" value="0" step="0.05" class="w-full">
+            </div>
+             <div class="mb-3">
+                <label class="block text-sm font-medium">Skew XZ: <span id="skewXZVal">0</span></label>
+                <input type="range" id="skewXZ" min="-1" max="1" value="0" step="0.05" class="w-full">
+            </div>
+        </div>
+
+        <!-- Reflection -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-2 text-gray-200 border-b border-gray-600 pb-1">Reflection</h2>
+            <div class="flex space-x-2">
+                <button id="reflectX" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full text-sm">Reflect X</button>
+                <button id="reflectY" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full text-sm">Reflect Y</button>
+            </div>
+        </div>
+        
+        <!-- Lighting -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-2 text-gray-200 border-b border-gray-600 pb-1">Lighting</h2>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Ambient Light: <span id="ambientLightVal">0.2</span></label>
+                <input type="range" id="ambientLight" min="0" max="1" value="0.2" step="0.1" class="w-full">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Point Light Intensity: <span id="pointLightVal">0.8</span></label>
+                <input type="range" id="pointLight" min="0" max="2" value="0.8" step="0.1" class="w-full">
+            </div>
+             <div class="mb-3">
+                <label for="pointLightColor" class="block text-sm font-medium">Point Light Color</label>
+                <input type="color" id="pointLightColor" value="#ffffff" class="w-full h-8 p-1 bg-gray-700 border border-gray-600 rounded cursor-pointer">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Light Pos X: <span id="lightXVal">5</span></label>
+                <input type="range" id="lightX" min="-20" max="20" value="5" step="0.5" class="w-full">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Light Pos Y: <span id="lightYVal">5</span></label>
+                <input type="range" id="lightY" min="-20" max="20" value="5" step="0.5" class="w-full">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Light Pos Z: <span id="lightZVal">5</span></label>
+                <input type="range" id="lightZ" min="-20" max="20" value="5" step="0.5" class="w-full">
+            </div>
+        </div>
+
+        <!-- Camera Perspective -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-2 text-gray-200 border-b border-gray-600 pb-1">Camera & Perspective</h2>
+            <p class="text-xs text-gray-400 mb-2">Use your mouse to orbit, pan, and zoom the camera.</p>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Field of View (FOV): <span id="fovVal">75</span></label>
+                <input type="range" id="fov" min="10" max="120" value="75" step="1" class="w-full">
+            </div>
+             <div class="flex space-x-2">
+                <button id="perspective" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full text-sm">Perspective</button>
+                <button id="orthographic" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded w-full text-sm">Orthographic</button>
+            </div>
+        </div>
+
+        <button id="reset" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded w-full">Reset All</button>
+
+    </div>
+
+    <script>
+        // --- Basic Scene Setup ---
+        let scene, camera, renderer, pointLight, controls, ambientLight;
+        let cubeMesh, sphereMesh, currentObject;
+        const container = document.getElementById('container');
+
+        // --- State for transformations ---
+        let reflectXState = 1;
+        let reflectYState = 1;
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x404040); // bg-gray-700
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 10;
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // --- Objects and Lights ---
+            const material = new THREE.MeshStandardMaterial({ color: 0x60A5FA, roughness: 0.5, metalness: 0.5 });
+            
+            // Cube
+            const cubeGeometry = new THREE.BoxGeometry(3, 3, 3);
+            cubeMesh = new THREE.Mesh(cubeGeometry, material);
+            cubeMesh.matrixAutoUpdate = false; // We will manage the matrix manually
+            
+            // Sphere
+            const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
+            sphereMesh = new THREE.Mesh(sphereGeometry, material);
+            sphereMesh.matrixAutoUpdate = false;
+
+            // Set initial object
+            currentObject = cubeMesh;
+            scene.add(currentObject);
+            
+            // Grid Helper
+            const gridHelper = new THREE.GridHelper(20, 20, 0x888888, 0x888888);
+            scene.add(gridHelper);
+
+            // Ambient Light
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+            scene.add(ambientLight);
+
+            // Point Light
+            pointLight = new THREE.PointLight(0xffffff, 0.8, 100);
+            pointLight.position.set(5, 5, 5);
+            scene.add(pointLight);
+            
+            // Point Light Helper
+            const pointLightHelper = new THREE.PointLightHelper(pointLight, 0.5);
+            scene.add(pointLightHelper);
+
+            // --- UI Controls ---
+            const ui = {
+                shapeCube: document.getElementById('shapeCube'),
+                shapeSphere: document.getElementById('shapeSphere'),
+                translateX: document.getElementById('translateX'),
+                translateY: document.getElementById('translateY'),
+                rotateY: document.getElementById('rotateY'),
+                scale: document.getElementById('scale'),
+                skewXY: document.getElementById('skewXY'),
+                skewXZ: document.getElementById('skewXZ'),
+                reflectX: document.getElementById('reflectX'),
+                reflectY: document.getElementById('reflectY'),
+                ambientLight: document.getElementById('ambientLight'),
+                pointLight: document.getElementById('pointLight'),
+                pointLightColor: document.getElementById('pointLightColor'),
+                lightX: document.getElementById('lightX'),
+                lightY: document.getElementById('lightY'),
+                lightZ: document.getElementById('lightZ'),
+                fov: document.getElementById('fov'),
+                perspective: document.getElementById('perspective'),
+                orthographic: document.getElementById('orthographic'),
+                reset: document.getElementById('reset'),
+            };
+
+            const values = {
+                translateXVal: document.getElementById('translateXVal'),
+                translateYVal: document.getElementById('translateYVal'),
+                rotateYVal: document.getElementById('rotateYVal'),
+                scaleVal: document.getElementById('scaleVal'),
+                skewXYVal: document.getElementById('skewXYVal'),
+                skewXZVal: document.getElementById('skewXZVal'),
+                ambientLightVal: document.getElementById('ambientLightVal'),
+                pointLightVal: document.getElementById('pointLightVal'),
+                lightXVal: document.getElementById('lightXVal'),
+                lightYVal: document.getElementById('lightYVal'),
+                lightZVal: document.getElementById('lightZVal'),
+                fovVal: document.getElementById('fovVal'),
+            };
+            
+            // --- Transformation Matrix Update Function ---
+            function updateObjectMatrix() {
+                const position = new THREE.Vector3(parseFloat(ui.translateX.value), parseFloat(ui.translateY.value), 0);
+                const rotation = new THREE.Euler(0, THREE.MathUtils.degToRad(parseFloat(ui.rotateY.value)), 0);
+                const scaleVal = parseFloat(ui.scale.value);
+                const scale = new THREE.Vector3(scaleVal * reflectXState, scaleVal * reflectYState, scaleVal);
+                
+                const Sxy = parseFloat(ui.skewXY.value);
+                const Sxz = parseFloat(ui.skewXZ.value);
+                const shearMatrix = new THREE.Matrix4().set(
+                    1,   Sxy, Sxz, 0,
+                    0,   1,   0,   0,
+                    0,   0,   1,   0,
+                    0,   0,   0,   1
+                );
+
+                // Compose matrix from position, rotation (quaternion), and scale
+                currentObject.matrix.compose(position, new THREE.Quaternion().setFromEuler(rotation), scale);
+                // Apply the shear matrix on top
+                currentObject.matrix.multiply(shearMatrix);
+            }
+
+            // --- Event Listeners ---
+            
+            // Shape Selection
+            ui.shapeCube.addEventListener('click', () => {
+                if (currentObject !== cubeMesh) {
+                    scene.remove(currentObject);
+                    currentObject = cubeMesh;
+                    scene.add(currentObject);
+                    updateObjectMatrix();
+                    ui.shapeCube.classList.replace('bg-gray-600', 'bg-green-500');
+                    ui.shapeSphere.classList.replace('bg-green-500', 'bg-gray-600');
+                }
+            });
+            ui.shapeSphere.addEventListener('click', () => {
+                if (currentObject !== sphereMesh) {
+                    scene.remove(currentObject);
+                    currentObject = sphereMesh;
+                    scene.add(currentObject);
+                    updateObjectMatrix();
+                    ui.shapeSphere.classList.replace('bg-gray-600', 'bg-green-500');
+                    ui.shapeCube.classList.replace('bg-green-500', 'bg-gray-600');
+                }
+            });
+
+            // Transformation Listeners
+            ['translateX', 'translateY', 'rotateY', 'scale', 'skewXY', 'skewXZ'].forEach(id => {
+                ui[id].addEventListener('input', (e) => {
+                    values[id + 'Val'].innerText = parseFloat(e.target.value).toFixed(id === 'scale' ? 1 : 2);
+                    updateObjectMatrix();
+                });
+            });
+
+            // Reflection
+            ui.reflectX.addEventListener('click', () => {
+                reflectXState *= -1;
+                updateObjectMatrix();
+            });
+            ui.reflectY.addEventListener('click', () => {
+                reflectYState *= -1;
+                updateObjectMatrix();
+            });
+
+            // Lighting
+            ui.ambientLight.addEventListener('input', (e) => {
+                ambientLight.intensity = parseFloat(e.target.value);
+                values.ambientLightVal.innerText = e.target.value;
+            });
+            ui.pointLight.addEventListener('input', (e) => {
+                pointLight.intensity = parseFloat(e.target.value);
+                values.pointLightVal.innerText = e.target.value;
+            });
+            ui.pointLightColor.addEventListener('input', (e) => {
+                pointLight.color.set(e.target.value);
+            });
+            ['lightX', 'lightY', 'lightZ'].forEach(id => {
+                ui[id].addEventListener('input', (e) => {
+                    const x = parseFloat(ui.lightX.value);
+                    const y = parseFloat(ui.lightY.value);
+                    const z = parseFloat(ui.lightZ.value);
+                    pointLight.position.set(x, y, z);
+                    values[id + 'Val'].innerText = e.target.value;
+                });
+            });
+            
+            // Camera
+            ui.fov.addEventListener('input', (e) => {
+                if (camera.isPerspectiveCamera) {
+                    camera.fov = parseFloat(e.target.value);
+                    camera.updateProjectionMatrix();
+                    values.fovVal.innerText = e.target.value;
+                }
+            });
+
+            ui.perspective.addEventListener('click', () => {
+                const aspect = container.clientWidth / container.clientHeight;
+                camera = new THREE.PerspectiveCamera(parseFloat(ui.fov.value), aspect, 0.1, 1000);
+                camera.position.copy(controls.object.position);
+                camera.rotation.copy(controls.object.rotation);
+                controls.object = camera;
+                ui.fov.disabled = false;
+                ui.perspective.classList.replace('bg-gray-600', 'bg-green-500');
+                ui.perspective.classList.replace('hover:bg-gray-700', 'hover:bg-green-600');
+                ui.orthographic.classList.replace('bg-green-500', 'bg-gray-600');
+                ui.orthographic.classList.replace('hover:bg-green-600', 'hover:bg-gray-700');
+            });
+
+            ui.orthographic.addEventListener('click', () => {
+                const aspect = container.clientWidth / container.clientHeight;
+                const frustumSize = 15;
+                camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 1, 1000);
+                camera.position.copy(controls.object.position);
+                camera.rotation.copy(controls.object.rotation);
+                controls.object = camera;
+                ui.fov.disabled = true;
+                ui.orthographic.classList.replace('bg-gray-600', 'bg-green-500');
+                ui.orthographic.classList.replace('hover:bg-gray-700', 'hover:bg-green-600');
+                ui.perspective.classList.replace('bg-green-500', 'bg-gray-600');
+                ui.perspective.classList.replace('hover:bg-green-600', 'hover:bg-gray-700');
+            });
+
+            // Reset
+            ui.reset.addEventListener('click', () => {
+                ['translateX', 'translateY', 'rotateY', 'skewXY', 'skewXZ'].forEach(id => ui[id].value = 0);
+                ui.scale.value = 1;
+                ui.ambientLight.value = 0.2;
+                ui.pointLight.value = 0.8;
+                ui.pointLightColor.value = '#ffffff';
+                ui.lightX.value = 5;
+                ui.lightY.value = 5;
+                ui.lightZ.value = 5;
+                ui.fov.value = 75;
+
+                reflectXState = 1;
+                reflectYState = 1;
+
+                // Trigger all input events to update UI and object state
+                Object.values(ui).forEach(el => el.dispatchEvent(new Event('input')));
+                
+                ui.shapeCube.click();
+                updateObjectMatrix();
+                ui.perspective.click();
+                controls.reset();
+            });
+
+            // Handle window resizing
+            window.addEventListener('resize', onWindowResize, false);
+            updateObjectMatrix(); // Initial matrix calculation
+        }
+
+        function onWindowResize() {
+            const aspect = container.clientWidth / container.clientHeight;
+            if (camera.isPerspectiveCamera) {
+                camera.aspect = aspect;
+            } else { // Orthographic
+                const frustumSize = 15;
+                camera.left = frustumSize * aspect / -2;
+                camera.right = frustumSize * aspect / 2;
+                camera.top = frustumSize / 2;
+                camera.bottom = frustumSize / -2;
+            }
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // Required for OrbitControls damping
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
