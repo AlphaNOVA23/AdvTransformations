@@ -1,9 +1,7 @@
 # 3D Transformation Explorer
 
-An interactive web-based tool to explore **3D transformations** using [Three.js](https://threejs.org/) with a modern Tailwind-powered UI.  
+An interactive web-based tool to explore **3D transformations** using [Three.js](https://threejs.org/) with a modern Tailwind-powered UI. 
 You can apply translations, rotations, scaling, skewing (shearing), reflections, lighting adjustments, and camera perspective changes in real-time.
-
-![demo-preview](https://via.placeholder.com/800x400.png?text=3D+Transformation+Explorer+Preview)
 
 ---
 
@@ -34,5 +32,5 @@ You can apply translations, rotations, scaling, skewing (shearing), reflections,
 
 ### 1. Clone or Download
 ```bash
-git clone https://github.com/your-username/3d-transformer-explorer.git
+git clone https://github.com/AlphaNOVA23/3d-transformer-explorer
 cd 3d-transformer-explorer
