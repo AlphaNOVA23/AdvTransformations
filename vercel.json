@@ -1,7 +1,7 @@
 {
   "build": {
     "env": {
-      "VERCEL_OUTPUT_DIRECTORY": "dist"
+      "VERCEL_OUTPUT_DIRECTORY": "."
     }
   },
   "rewrites": [
