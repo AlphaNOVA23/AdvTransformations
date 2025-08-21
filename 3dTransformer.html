@@ -44,13 +44,22 @@
             cursor: pointer;
             border-radius: 50%;
         }
+
+        /* Styles for collapsible sidebar */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+            z-index: 10;
+        }
+        #sidebar.is-collapsed {
+            transform: translateX(-100%);
+        }
     </style>
 </head>
 <body class="bg-gray-700 text-white">
 
     <div id="container" class="w-full h-screen fixed top-0 left-0"></div>
 
-    <div class="fixed top-0 left-0 p-6 w-full md:w-96 bg-gray-800 bg-opacity-80 backdrop-blur-sm rounded-br-lg shadow-lg max-h-screen overflow-y-auto">
+    <div id="sidebar" class="fixed top-0 left-0 p-6 w-full md:w-96 bg-gray-800 bg-opacity-80 backdrop-blur-sm rounded-br-lg shadow-lg max-h-screen overflow-y-auto">
         <h1 class="text-2xl font-bold mb-4 text-blue-300">3D Transformation Explorer</h1>
         
         <!-- Object Shape -->
@@ -65,6 +74,7 @@
         <!-- Transformations -->
         <div class="mb-6">
             <h2 class="text-lg font-semibold mb-2 text-gray-200 border-b border-gray-600 pb-1">Transformations</h2>
+            <p class="text-xs text-gray-400 mb-2">Mouse drag also controls rotation. Mouse wheel controls zoom (Z translation).</p>
             <div class="mb-3">
                 <label class="block text-sm font-medium">Translation X: <span id="translateXVal">0</span></label>
                 <input type="range" id="translateX" min="-5" max="5" value="0" step="0.1" class="w-full">
@@ -74,8 +84,20 @@
                 <input type="range" id="translateY" min="-5" max="5" value="0" step="0.1" class="w-full">
             </div>
             <div class="mb-3">
+                <label class="block text-sm font-medium">Translation Z: <span id="translateZVal">0</span></label>
+                <input type="range" id="translateZ" min="-5" max="5" value="0" step="0.1" class="w-full">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Rotation X: <span id="rotateXVal">0</span></label>
+                <input type="range" id="rotateX" min="-180" max="180" value="0" step="1" class="w-full">
+            </div>
+            <div class="mb-3">
                 <label class="block text-sm font-medium">Rotation Y: <span id="rotateYVal">0</span></label>
                 <input type="range" id="rotateY" min="-180" max="180" value="0" step="1" class="w-full">
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium">Rotation Z: <span id="rotateZVal">0</span></label>
+                <input type="range" id="rotateZ" min="-180" max="180" value="0" step="1" class="w-full">
             </div>
              <div class="mb-3">
                 <label class="block text-sm font-medium">Scale: <span id="scaleVal">1</span></label>
@@ -137,7 +159,6 @@
         <!-- Camera Perspective -->
         <div class="mb-6">
             <h2 class="text-lg font-semibold mb-2 text-gray-200 border-b border-gray-600 pb-1">Camera & Perspective</h2>
-            <p class="text-xs text-gray-400 mb-2">Use your mouse to orbit, pan, and zoom the camera.</p>
             <div class="mb-3">
                 <label class="block text-sm font-medium">Field of View (FOV): <span id="fovVal">75</span></label>
                 <input type="range" id="fov" min="10" max="120" value="75" step="1" class="w-full">
@@ -151,6 +172,17 @@
         <button id="reset" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded w-full">Reset All</button>
 
     </div>
+    
+    <!-- Toggle Button -->
+    <button id="toggleSidebar" class="fixed top-4 bg-gray-800 p-2 rounded-r-lg shadow-lg" style="transition: left 0.3s ease-in-out; z-index: 20;">
+        <svg id="icon-open" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+        </svg>
+        <svg id="icon-closed" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+        </svg>
+    </button>
+
 
     <script>
         // --- Basic Scene Setup ---
@@ -216,11 +248,18 @@
 
             // --- UI Controls ---
             const ui = {
+                sidebar: document.getElementById('sidebar'),
+                toggleSidebar: document.getElementById('toggleSidebar'),
+                iconOpen: document.getElementById('icon-open'),
+                iconClosed: document.getElementById('icon-closed'),
                 shapeCube: document.getElementById('shapeCube'),
                 shapeSphere: document.getElementById('shapeSphere'),
                 translateX: document.getElementById('translateX'),
                 translateY: document.getElementById('translateY'),
+                translateZ: document.getElementById('translateZ'),
+                rotateX: document.getElementById('rotateX'),
                 rotateY: document.getElementById('rotateY'),
+                rotateZ: document.getElementById('rotateZ'),
                 scale: document.getElementById('scale'),
                 skewXY: document.getElementById('skewXY'),
                 skewXZ: document.getElementById('skewXZ'),
@@ -241,7 +280,10 @@
             const values = {
                 translateXVal: document.getElementById('translateXVal'),
                 translateYVal: document.getElementById('translateYVal'),
+                translateZVal: document.getElementById('translateZVal'),
+                rotateXVal: document.getElementById('rotateXVal'),
                 rotateYVal: document.getElementById('rotateYVal'),
+                rotateZVal: document.getElementById('rotateZVal'),
                 scaleVal: document.getElementById('scaleVal'),
                 skewXYVal: document.getElementById('skewXYVal'),
                 skewXZVal: document.getElementById('skewXZVal'),
@@ -253,10 +295,25 @@
                 fovVal: document.getElementById('fovVal'),
             };
             
+            // --- Helper function for sidebar toggle button position ---
+            function updateToggleButtonPosition() {
+                const isCollapsed = ui.sidebar.classList.contains('is-collapsed');
+                if (isCollapsed) {
+                    ui.toggleSidebar.style.left = '0px';
+                } else {
+                    const sidebarWidth = ui.sidebar.offsetWidth;
+                    ui.toggleSidebar.style.left = `${sidebarWidth}px`;
+                }
+            }
+
             // --- Transformation Matrix Update Function ---
             function updateObjectMatrix() {
-                const position = new THREE.Vector3(parseFloat(ui.translateX.value), parseFloat(ui.translateY.value), 0);
-                const rotation = new THREE.Euler(0, THREE.MathUtils.degToRad(parseFloat(ui.rotateY.value)), 0);
+                const position = new THREE.Vector3(parseFloat(ui.translateX.value), parseFloat(ui.translateY.value), parseFloat(ui.translateZ.value));
+                const rotation = new THREE.Euler(
+                    THREE.MathUtils.degToRad(parseFloat(ui.rotateX.value)), 
+                    THREE.MathUtils.degToRad(parseFloat(ui.rotateY.value)), 
+                    THREE.MathUtils.degToRad(parseFloat(ui.rotateZ.value))
+                );
                 const scaleVal = parseFloat(ui.scale.value);
                 const scale = new THREE.Vector3(scaleVal * reflectXState, scaleVal * reflectYState, scaleVal);
                 
@@ -277,6 +334,14 @@
 
             // --- Event Listeners ---
             
+            // Sidebar Toggle
+            ui.toggleSidebar.addEventListener('click', () => {
+                ui.sidebar.classList.toggle('is-collapsed');
+                ui.iconOpen.classList.toggle('hidden');
+                ui.iconClosed.classList.toggle('hidden');
+                updateToggleButtonPosition();
+            });
+
             // Shape Selection
             ui.shapeCube.addEventListener('click', () => {
                 if (currentObject !== cubeMesh) {
@@ -300,9 +365,9 @@
             });
 
             // Transformation Listeners
-            ['translateX', 'translateY', 'rotateY', 'scale', 'skewXY', 'skewXZ'].forEach(id => {
+            ['translateX', 'translateY', 'translateZ', 'rotateX', 'rotateY', 'rotateZ', 'scale', 'skewXY', 'skewXZ'].forEach(id => {
                 ui[id].addEventListener('input', (e) => {
-                    values[id + 'Val'].innerText = parseFloat(e.target.value).toFixed(id === 'scale' ? 1 : 2);
+                    values[id + 'Val'].innerText = parseFloat(e.target.value).toFixed(id.includes('scale') ? 1 : (id.includes('translate') ? 1 : 0));
                     updateObjectMatrix();
                 });
             });
@@ -377,31 +442,47 @@
 
             // Reset
             ui.reset.addEventListener('click', () => {
-                ['translateX', 'translateY', 'rotateY', 'skewXY', 'skewXZ'].forEach(id => ui[id].value = 0);
-                ui.scale.value = 1;
-                ui.ambientLight.value = 0.2;
-                ui.pointLight.value = 0.8;
-                ui.pointLightColor.value = '#ffffff';
-                ui.lightX.value = 5;
-                ui.lightY.value = 5;
-                ui.lightZ.value = 5;
-                ui.fov.value = 75;
-
+                // Reset state variables FIRST
                 reflectXState = 1;
                 reflectYState = 1;
 
-                // Trigger all input events to update UI and object state
-                Object.values(ui).forEach(el => el.dispatchEvent(new Event('input')));
-                
+                // Reset UI controls to their default values
+                const defaults = {
+                    translateX: 0, translateY: 0, translateZ: 0,
+                    rotateX: 0, rotateY: 0, rotateZ: 0,
+                    scale: 1, skewXY: 0, skewXZ: 0,
+                    ambientLight: 0.2, pointLight: 0.8,
+                    lightX: 5, lightY: 5, lightZ: 5, fov: 75
+                };
+                Object.keys(defaults).forEach(id => {
+                    ui[id].value = defaults[id];
+                    if (values[id + 'Val']) {
+                        values[id + 'Val'].innerText = defaults[id];
+                    }
+                });
+                ui.pointLightColor.value = '#ffffff';
+                pointLight.color.set('#ffffff');
+
+                // Reset other UI states
                 ui.shapeCube.click();
-                updateObjectMatrix();
                 ui.perspective.click();
+                
+                // Explicitly update the object's matrix with all the reset values
+                updateObjectMatrix();
+                
+                // Reset the camera's position/rotation/zoom
                 controls.reset();
+                
+                // Ensure the sidebar is visible after reset
+                if (ui.sidebar.classList.contains('is-collapsed')) {
+                    ui.toggleSidebar.click();
+                }
             });
 
             // Handle window resizing
             window.addEventListener('resize', onWindowResize, false);
             updateObjectMatrix(); // Initial matrix calculation
+            updateToggleButtonPosition(); // Initial button position
         }
 
         function onWindowResize() {
@@ -417,6 +498,7 @@
             }
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
+            updateToggleButtonPosition(); // Update button on resize
         }
 
         // Animation loop
